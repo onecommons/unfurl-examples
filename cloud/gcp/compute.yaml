@@ -43,21 +43,26 @@ node_types:
                     family  = "cos-85-lts"
                   }
 
-                  output "bootimage" {
+                  output "boot_image" {
                     value = data.google_compute_image.cos.self_link
                   }
             resultTemplate:
               attributes:
-                bootimage: "{{ outputs.bootimage }}"
+                boot_image: "{{ outputs.boot_image }}"
 
   unfurl.nodes.Compute:
     derived_from: unfurl.nodes.ComputeAbstract
+    properties:
+      machine_type:
+        type: string
+        default: e2-small
+
     interfaces:
       defaults:
         implementation: Terraform
         inputs:
-          main:
-            eval:
+          main:   # XXX portspec
+            eval: # XXX name, zone = "${var.region}-a"
               template: |
                 provider "google" {}
 
@@ -65,28 +70,39 @@ node_types:
 
                 # https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance
                 resource "google_compute_instance" "app" {
-                  name         = var.name
-                  zone         = "${var.region}-a"
-                  machine_type = "e2-small"
+                  name         = "app"
+                  machine_type = "{{ SELF.machine_type }}"
                   tags         = ["ssh", "http-server", "https-server"]
 
                   metadata = {
-                    user-data = "{{ userdata }}"
+                      {% if SELF.user_data %}
+                      user-data = var.user_data
+                      {% endif %}
                   }
 
                   boot_disk {
                     initialize_params {
-                      image = var.bootimage
+                      image = "{{ SELF.boot_image }}"
                     }
                   }
 
                   network_interface {
-                    network = var.network || "default"
+                    network = var.network
 
                     access_config {
                       // Ephemeral IP
                     }
                   }
+                }
+
+                variable "user_data" {
+                  type        = string
+                  default     = ""
+                }
+
+                variable "network" {
+                  type        = string
+                  default     = "default"
                 }
       Standard:
         operations:

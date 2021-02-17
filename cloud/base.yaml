@@ -25,10 +25,14 @@ node_types:
   unfurl.nodes.ComputeAbstract:
     derived_from: tosca.nodes.Compute
     properties:
-      bootimage:
+      boot_image:
         type: string
         default:
-          eval: .requirements::configuredBy::bootimage
+          eval: .requirements::configuredBy::boot_image
+      machine_type:
+        type: string
+        default:
+          eval: .requirements::configuredBy::machine_type
       user_data:
         type: string
         default:
@@ -49,12 +53,11 @@ node_types:
     properties:
       portspec:
         type: tosca.datatypes.network.PortSpec
-      container:
+      # container:
+      #   type: string
+      #   required: false
+      files:
         type: string
-        required: false
-      dockercompose:
-        type: string
-        required: false
       env:
         type: map
         entry_schema:
@@ -64,18 +67,19 @@ node_types:
   unfurl.nodes.BootImageAbstract:
     derived_from: unfurl.nodes.Configuration
     attributes:
-      bootimage:
+      boot_image:
         type: string
 
   unfurl.nodes.DockerComputeHost:
     derived_from: unfurl.nodes.DockerHost
     description: Given a docker-compose.yaml file create a cloudinit file
     properties:
-      bootimage:
+      boot_image:
         type: string
         default:
-          eval: ::dockerhost-bootimage::bootimage
+          eval: ::dockerhost-bootimage::boot_image
       machine_type:
+        type: string
         default:
           eval: ::dockerhost-bootimage::machine_type
     attributes:
@@ -147,7 +151,8 @@ node_types:
                     }
 
                     output "cloud_config" {
-                      value = module.container-server.cloud_config
+                      description = "Content of the cloud-init config to be deployed to a server."
+                      value       = data.cloudinit_config.config.rendered
                     }
 
                     variable "env" {
