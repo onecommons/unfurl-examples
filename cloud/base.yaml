@@ -1,0 +1,150 @@
+# Copyright (c) 2020 Adam Souzis
+# SPDX-License-Identifier: MIT
+tosca_definitions_version: tosca_simple_unfurl_1_0_0
+metadata:
+  template_name: Generic cloud provider implementations
+  template_author: onecommons.org
+  template_version: 1.0.0
+
+relationship_types:
+  unfurl.relationships.ConfiguredBy:
+    derived_from: tosca.relationships.Root
+    valid_target_types: [unfurl.capabilities.Configuration]
+
+capability_types:
+  unfurl.capabilities.Configuration:
+    derived_from: tosca.capabilities.Root
+
+node_types:
+  unfurl.nodes.Configuration:
+    derived_from: tosca.nodes.Root
+    capabilities:
+      configuredBy:
+        type: unfurl.capabilities.Configuration
+
+  unfurl.nodes.ComputeAbstract:
+    derived_from: tosca.nodes.Compute
+    properties:
+      bootimage:
+        type: string
+        default:
+          eval: .requirements::configuredBy::bootimage
+      user_data:
+        type: string
+        default:
+          eval: .requirements::configuredBy::user_data
+      portspec:
+        type: tosca.datatypes.network.PortSpec
+        default:
+          eval: .requirements::configuredBy::portspec
+      # name, zone, machine_type, tags, network
+    requirements:
+      - configuredBy:
+          relationship: unfurl.relationships.ConfiguredBy
+          node: unfurl.nodes.Configuration
+          occurrences: [0, UNBOUNDED]
+
+  unfurl.nodes.DockerHost:
+    derived_from: unfurl.nodes.Configuration
+    properties:
+      portspec:
+        type: tosca.datatypes.network.PortSpec
+      container:
+        type: string
+        required: false
+      dockercompose:
+        type: string
+        required: false
+      env:
+        type: map
+        entry_schema:
+          type: string
+        default: {}
+
+  unfurl.nodes.BootImageAbstract:
+    derived_from: unfurl.nodes.Configuration
+    attributes:
+      bootimage:
+        type: string
+
+  unfurl.nodes.DockerComputeHost:
+    derived_from: unfurl.nodes.DockerHost
+    description: Given a docker-compose.yaml file create a cloudinit file
+    properties:
+      bootimage:
+        type: string
+        default:
+          eval: ::dockerhost-bootimage::bootimage
+      domain:
+        type: string
+        required: false
+      email:
+        type: string
+        required: false
+    attributes:
+      cloudinit:
+        type: string
+    interfaces:
+      Standard:
+        operations:
+          configure:
+            implementation: Terraform
+            inputs:
+              resultTemplate:
+                attributes:
+                  userdata: "{{ outputs.cloud_config }}"
+              main:
+                eval:
+                  template: |
+                    module "container-server" {
+                      source  = "christippett/container-server/cloudinit"
+                      version = "~> 1.2.0-alpha.9"
+
+                      {%if SELF.domain %}
+                      domain = {{ SELF.domain }}
+                      {%endif%}
+
+                      {%if SELF.email %}
+                      email =  {{ SELF.email }}
+                      {%endif%}
+
+                      {%if SELF.container %}
+                      container = {
+                        image   = {{ SELF.container }}
+                      }
+                      {%endif%}
+
+                      # cloudinit_part
+                      files = [
+                        {%if SELF.dockercompose %}
+                        {
+                          filename = "docker-compose.yaml"
+                          content  = filebase64("{{ SELF.dockercompose }}")
+                        },
+                        {%endif%}
+                        # https://docs.traefik.io/v2.0/middlewares/basicauth/#usersfile
+                        {
+                          filename = "users"
+                          content  = filebase64("${path.module}/assets/users")
+                        }
+                      ]
+
+                      env = {
+                        IMAGE                 = "containous/whoami:latest"
+                        TRAEFIK_API_DASHBOARD = true
+                      }
+                    }
+
+                    output "cloud_config" {
+                      value = module.container-server.cloud_config
+                    }
+
+# XXX use this for ssh endpoints and storage
+# annotations:
+#     unfurl:ComputeAbstract[configuredBy]:
+#       capabilities:
+#         endpoint:
+#           port:
+#             eval: .requirements::configuredBy::portspec::source
+#           protocol:
+#             eval: .requirements::configuredBy::portspec::protocol

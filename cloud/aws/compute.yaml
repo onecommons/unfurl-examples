@@ -1,0 +1,144 @@
+# Copyright (c) 2020 Adam Souzis
+# SPDX-License-Identifier: MIT
+tosca_definitions_version: tosca_simple_unfurl_1_0_0 # unfurl/v1alpha1.ServiceTemplate
+metadata:
+  template_name: AWS implementations
+  template_author: onecommons.org
+  template_version: 1.0.0
+imports:
+  - file: ../base.yaml
+
+topology_template:
+  node_templates:
+    dockerhost-bootimage:
+      type: unfurl.nodes.BootImage
+      directives:
+        - default
+      attributes:
+        # hard-code Amazon Linux 2
+        bootimage: ami-0560993025898e8e8
+
+node_types:
+  unfurl.nodes.BootImage:
+    derived_from: unfurl.nodes.BootImageAbstract
+    properties:
+      owner:
+        type: string
+      architecture:
+        type: string
+      virtualization:
+        type: string
+        default: hvm
+      name_regex:
+        type: string
+    interfaces:
+      Standard:
+        configure:
+          implementation: Terraform
+          inputs:
+            main:
+              eval:
+                template: |
+                  provider "aws" {
+                    version = "~> 3.2"
+                  }
+
+                  data "aws_ami" "service_ami" {
+                    most_recent = true
+                    name_regex  = var.name_regex
+                    filter {
+                      name   = "architecture"
+                      values = [var.architecture]
+                    }
+                    filter {
+                      name   = "virtualization-type"
+                      values = [var.virtualization]
+                    }
+                    owners = [var.owner]
+                  }
+
+                  output "bootimage" {
+                    value = data.aws_ami.service_ami.id
+                  }
+            resultTemplate:
+              attributes:
+                bootimage: "{{ outputs.bootimage }}"
+
+  unfurl.nodes.Compute:
+    derived_from: unfurl.nodes.ComputeAbstract
+    interfaces:
+      defaults:
+        implementation: Terraform
+        inputs:
+          main: |
+            provider "aws" {
+              version = "~> 3.2"
+            }
+
+            resource "aws_instance" "app" {
+              # data.aws_ami.service_ami.id
+              ami             = "ami-0560993025898e8e8" # Amazon Linux 2
+              instance_type   = "t2.micro"
+              security_groups = [aws_security_group.app.name]
+
+              tags = {
+                Name = "app"
+              }
+
+              user_data = module.container-server.cloud_config
+            }
+
+            /* DNS ---------------------------------------------------------------------- */
+
+            resource "aws_route53_record" "app" {
+              zone_id = var.zone_id
+              name    = "app.${var.domain}"
+              type    = "A"
+              records = [aws_instance.app.public_ip]
+              ttl     = "180"
+            }
+
+            /* Firewall ----------------------------------------------------------------- */
+
+            resource "aws_security_group" "app" {
+              name = "allow_app"
+
+              ingress {
+                description = "https"
+                from_port   = 443
+                to_port     = 443
+                protocol    = "tcp"
+                cidr_blocks = ["0.0.0.0/0"]
+              }
+
+              ingress {
+                description = "http"
+                from_port   = 80
+                to_port     = 80
+                protocol    = "tcp"
+                cidr_blocks = ["0.0.0.0/0"]
+              }
+
+              egress {
+                from_port   = 0
+                to_port     = 0
+                protocol    = "-1"
+                cidr_blocks = ["0.0.0.0/0"]
+              }
+            }
+
+      Standard:
+        operations:
+          delete:
+          create:
+            inputs:
+              resultTemplate:
+                attributes:
+                  id: '{{ resources[0].instances[0].attributes.id }}'
+                  private_address: '{{ resources[0].instances[0].attributes.private_ip
+                    }}'
+                  public_address: '{{ resources[0].instances[0].attributes.public_ip
+                    }}'
+      Install:
+        operations:
+          check:

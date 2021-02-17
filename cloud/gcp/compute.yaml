@@ -1,0 +1,105 @@
+# Copyright (c) 2020 Adam Souzis
+# SPDX-License-Identifier: MIT
+tosca_definitions_version: tosca_simple_unfurl_1_0_0 # unfurl/v1alpha1.ServiceTemplate
+metadata:
+  template_name: Google Cloud Platform implementations
+  template_author: onecommons.org
+  template_version: 1.0.0
+imports:
+  - file: ../base.yaml
+
+topology_template:
+  node_templates:
+    dockerhost-bootimage:
+      type: unfurl.nodes.BootImage
+      directives:
+        - default
+      properties:
+        project: cos-cloud
+        family: cos-85-lts
+
+node_types:
+  unfurl.nodes.BootImage:
+    derived_from: unfurl.nodes.BootImageAbstract
+    properties:
+      project:
+        type: string
+      family:
+        type: string
+    interfaces:
+      Standard:
+        configure:
+          implementation: Terraform
+          inputs:
+            main:
+              eval:
+                template: |
+                  provider "google" {}
+
+                  provider "google-beta" {}
+
+                  data "google_compute_image" "cos" {
+                    project = "cos-cloud"
+                    family  = "cos-85-lts"
+                  }
+
+                  output "bootimage" {
+                    value = data.google_compute_image.cos.self_link
+                  }
+            resultTemplate:
+              attributes:
+                bootimage: "{{ outputs.bootimage }}"
+
+  unfurl.nodes.Compute:
+    derived_from: unfurl.nodes.ComputeAbstract
+    interfaces:
+      defaults:
+        implementation: Terraform
+        inputs:
+          main:
+            eval:
+              template: |
+                provider "google" {}
+
+                provider "google-beta" {}
+
+                # https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance
+                resource "google_compute_instance" "app" {
+                  name         = var.name
+                  zone         = "${var.region}-a"
+                  machine_type = "e2-small"
+                  tags         = ["ssh", "http-server", "https-server"]
+
+                  metadata = {
+                    user-data = "{{ userdata }}"
+                  }
+
+                  boot_disk {
+                    initialize_params {
+                      image = var.bootimage
+                    }
+                  }
+
+                  network_interface {
+                    network = var.network || "default"
+
+                    access_config {
+                      // Ephemeral IP
+                    }
+                  }
+                }
+      Standard:
+        operations:
+          delete:
+          create:
+            inputs:
+              resultTemplate:
+                attributes:
+                  public_ip: "{{ resources[0].instances[0].attributes.network_interface[0].access_config[0].nat_ip }}"
+                  private_ip: "{{ result.network_interface[0].network_ip }}"
+                  # id format: projects/{{project}}/zones/{{zone}}/instances/{{name}}
+                  id:  "{{ resources[0].instances[0].attributes.id }}"
+                  name: "{{ resources[0].instances[0].attributes.id | basename }}"
+      Install:
+        operations:
+          check:
