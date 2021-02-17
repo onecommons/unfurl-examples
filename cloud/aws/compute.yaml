@@ -11,12 +11,10 @@ imports:
 topology_template:
   node_templates:
     dockerhost-bootimage:
-      type: unfurl.nodes.BootImage
-      directives:
-        - default
-      attributes:
-        # hard-code Amazon Linux 2
-        boot_image: ami-0560993025898e8e8
+      type: unfurl.nodes.Configuration
+      properties:
+          # hard-code Amazon Linux 2
+          boot_image: ami-0560993025898e8e8
 
 node_types:
   unfurl.nodes.BootImage:
@@ -26,7 +24,7 @@ node_types:
         type: string
       architecture:
         type: string
-      virtualization:
+      virtualization_type:
         type: string
         default: hvm
       name_regex:
@@ -45,16 +43,16 @@ node_types:
 
                   data "aws_ami" "service_ami" {
                     most_recent = true
-                    name_regex  = var.name_regex
+                    name_regex  = "{{ SELF.name_regex }}"
                     filter {
                       name   = "architecture"
-                      values = [var.architecture]
+                      values = [ "{{ SELF.architecture }}" ]
                     }
                     filter {
                       name   = "virtualization-type"
-                      values = [var.virtualization]
+                      values = [ "{{ SELF.virtualization_type }}" ]
                     }
-                    owners = [var.owner]
+                    owners = [ "{{ SELF.owner }}" ]
                   }
 
                   output "boot_image" {

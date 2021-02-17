@@ -53,11 +53,10 @@ node_types:
     properties:
       portspec:
         type: tosca.datatypes.network.PortSpec
-      # container:
-      #   type: string
-      #   required: false
       files:
-        type: string
+        type: list
+        entry_schema:
+          type: map
       env:
         type: map
         entry_schema:
