@@ -95,8 +95,8 @@ node_types:
             inputs:
               resultTemplate:
                 attributes:
-                  public_ip: "{{ resources[0].instances[0].attributes.network_interface[0].access_config[0].nat_ip }}"
-                  private_ip: "{{ result.network_interface[0].network_ip }}"
+                  public_address: "{{ resources[0].instances[0].attributes.network_interface[0].access_config[0].nat_ip }}"
+                  private_address: "{{ result.network_interface[0].network_ip }}"
                   # id format: projects/{{project}}/zones/{{zone}}/instances/{{name}}
                   id:  "{{ resources[0].instances[0].attributes.id }}"
                   name: "{{ resources[0].instances[0].attributes.id | basename }}"

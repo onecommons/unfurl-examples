@@ -115,28 +115,17 @@ node_types:
                       {%endif%}
 
                       # cloudinit_part
-                      files = [
-                        {%if SELF.dockercompose %}
-                        {
-                          filename = "docker-compose.yaml"
-                          content  = filebase64("{{ SELF.dockercompose }}")
-                        },
-                        {%endif%}
-                        # https://docs.traefik.io/v2.0/middlewares/basicauth/#usersfile
-                        {
-                          filename = "users"
-                          content  = filebase64("${path.module}/assets/users")
-                        }
-                      ]
-
-                      env = {
-                        IMAGE                 = "containous/whoami:latest"
-                        TRAEFIK_API_DASHBOARD = true
-                      }
+                      files = var.files
                     }
 
                     output "cloud_config" {
                       value = module.container-server.cloud_config
+                    }
+
+                    variable "files" {
+                      description = "User files to be copied to the application's working directory (`/var/app`). The file's content must be provided to Terraform as a base64 encoded string."
+                      type        = list(object({ filename : string, content : string }))
+                      default     = []
                     }
 
 # XXX use this for ssh endpoints and storage
