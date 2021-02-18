@@ -48,7 +48,7 @@ node_types:
                   }
             resultTemplate:
               attributes:
-                boot_image: "{{ outputs.boot_image }}"
+                boot_image: "{{ outputs.boot_image.value }}"
 
   unfurl.nodes.Compute:
     derived_from: unfurl.nodes.ComputeAbstract
@@ -61,49 +61,72 @@ node_types:
       defaults:
         implementation: Terraform
         inputs:
-          main:   # XXX portspec
-            eval: # XXX name, zone = "${var.region}-a"
-              template: |
-                provider "google" {}
+          tfvars:
+            user_data: "{{ SELF.user_data }}"
+          main: |
+            provider "google" {
+            }
 
-                provider "google-beta" {}
+            provider "google-beta" {
+            }
 
-                # https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance
-                resource "google_compute_instance" "app" {
-                  name         = "app"
-                  machine_type = "{{ SELF.machine_type }}"
-                  tags         = ["ssh", "http-server", "https-server"]
+            # https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance
+            resource "google_compute_instance" "app" {
+              name         = "app"
+              machine_type = "{{ SELF.machine_type }}"
+              tags         = [ "app", "ssh" ]
 
-                  metadata = {
-                      {% if SELF.user_data %}
-                      user-data = var.user_data
-                      {% endif %}
-                  }
+              metadata = {
+                  {% if SELF.user_data %}
+                  user-data = var.user_data
+                  {% endif %}
+              }
 
-                  boot_disk {
-                    initialize_params {
-                      image = "{{ SELF.boot_image }}"
-                    }
-                  }
-
-                  network_interface {
-                    network = var.network
-
-                    access_config {
-                      // Ephemeral IP
-                    }
-                  }
+              boot_disk {
+                initialize_params {
+                  image = "{{ SELF.boot_image }}"
                 }
+              }
 
-                variable "user_data" {
-                  type        = string
-                  default     = ""
-                }
+              network_interface {
+                network = var.network
 
-                variable "network" {
-                  type        = string
-                  default     = "default"
+                access_config {
+                  // Ephemeral IP
                 }
+              }
+            }
+
+            resource "google_compute_firewall" "app" {
+              name    = "app-firewall"
+              network = var.network
+
+              allow {
+                protocol = "icmp"
+              }
+
+              allow {
+                protocol    =  "{{ SELF.portspec.protocol or 'tcp' }}"
+                ports    = [ {{ SELF.portspec.source }} ]
+              }
+
+              target_tags = ["app"]
+            }
+
+            variable "user_data" {
+              type        = string
+              default     = ""
+            }
+
+            variable "network" {
+              type        = string
+              default     = "default"
+            }
+
+            output "instance" {
+              value = google_compute_instance.app
+            }
+
       Standard:
         operations:
           delete:
@@ -111,11 +134,11 @@ node_types:
             inputs:
               resultTemplate:
                 attributes:
-                  public_address: "{{ resources[0].instances[0].attributes.network_interface[0].access_config[0].nat_ip }}"
-                  private_address: "{{ result.network_interface[0].network_ip }}"
+                  public_address: "{{ outputs.instance.value.network_interface[0].access_config[0].nat_ip }}"
+                  private_address: "{{ outputs.instance.value.network_interface[0].network_ip }}"
                   # id format: projects/{{project}}/zones/{{zone}}/instances/{{name}}
-                  id:  "{{ resources[0].instances[0].attributes.id }}"
-                  name: "{{ resources[0].instances[0].attributes.id | basename }}"
+                  id:  "{{ outputs.instance.value.id }}"
+                  name: "{{ outputs.instance.value.id | basename }}"
       Install:
         operations:
           check:

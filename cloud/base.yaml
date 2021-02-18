@@ -78,12 +78,8 @@ node_types:
         type: string
         default:
           eval: ::dockerhost-bootimage::boot_image
-      machine_type:
-        type: string
-        default:
-          eval: ::dockerhost-bootimage::machine_type
     attributes:
-      cloudinit:
+      user_data:
         type: string
     interfaces:
       Standard:
@@ -93,18 +89,17 @@ node_types:
             inputs:
               resultTemplate:
                 attributes:
-                  userdata: "{{ outputs.cloud_config }}"
+                  user_data: "{{ outputs.cloud_config.value }}"
               tfvars:
                 files: "{{ SELF.files }}"
                 env: "{{ SELF.env }}"
               main: |
-                environment = merge({
-                    COMPOSE_DOCKER_IMAGE       = var.docker_compose_image
-                    COMPOSE_DOCKER_TAG         = var.docker_compose_tag
-                  }, var.env)
-                }
-
                 locals {
+                  environment = merge({
+                      COMPOSE_DOCKER_IMAGE       = var.docker_compose_image
+                      COMPOSE_DOCKER_TAG         = var.docker_compose_tag
+                    }, var.env)
+
                   file_regex   = "(?P<filename>docker-compose(?:\\.(?P<name>.*?))?\\.ya?ml)"
                   files = concat(
                     [
