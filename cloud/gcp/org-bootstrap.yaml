@@ -1,0 +1,124 @@
+# Copyright (c) 2020 Adam Souzis
+# SPDX-License-Identifier: MIT
+tosca_definitions_version: tosca_simple_unfurl_1_0_0
+metadata:
+  template_name: Google Cloud Platform implementations
+  template_author: onecommons.org
+  template_version: 1.0.0
+
+topology_template:
+  inputs:
+    organization_id:
+      type: string
+    billing_account:
+      type: string
+    admin_group:
+      type: string
+    default_region:
+      type: string
+      default: us-central1
+  node_templates:
+    seed:
+      type: unfurl.nodes.Installer.Terraform
+      properties:
+        organization_id: {get_input: organization_id}
+        billing_account: {get_input: billing_account}
+        default_region: {get_input: default_region}
+        admin_group:    {get_input: admin_group}
+      interfaces:
+        defaults:
+          inputs:
+            # merge all of the terraform outputs into attributes
+            # mapValue is needed for evaluating any embedded expressions
+            # (current limitation: needed even if there aren't any)
+            # to_json is needed because resultTemplate is string that get evaluated to yaml later
+            resultTemplate: |
+              attributes:
+                <<: "{{ outputs | mapValue | to_json }}"
+            tfvars:
+              org_id: "{{ SELF.organization_id }}"
+            main: |
+              provider "google" {
+                version = ">= 3.50"
+              }
+
+              provider "null" {
+                version = "~> 2.1"
+              }
+
+              provider "random" {
+                version = "~> 2.2"
+              }
+
+              /*************************************************
+                Bootstrap GCP Organization.
+              *************************************************/
+
+              module "seed_bootstrap" {
+                source  = "terraform-google-modules/bootstrap/google"
+                version = "~> 2.1"
+                org_id               = var.org_id
+                billing_account      = "{{ SELF.billing_account }}"
+                group_org_admins     = "{{ SELF.admin_group }}"
+                group_billing_admins = "{{ SELF.admin_group }}"
+                default_region       = "{{ SELF.default_region }}"
+              }
+
+              resource "google_folder" "dev" {
+                display_name = "fldr-dev"
+                parent       = "organizations/${var.org_id}"
+              }
+
+              resource "google_folder" "staging" {
+                display_name = "fldr-staging"
+                parent       = "organizations/${var.org_id}"
+              }
+
+              resource "google_folder" "production" {
+                display_name = "fldr-production"
+                parent       = "organizations/${var.org_id}"
+              }
+
+              output "dev_folder" {
+                value = google_folder.dev.name
+              }
+
+              output "staging_folder" {
+                value = google_folder.staging.name
+              }
+
+              output "production_folder" {
+                value = google_folder.production.name
+              }
+
+              output "seed_project_id" {
+                description = "Project where service accounts and core APIs will be enabled."
+                value       = module.seed_bootstrap.seed_project_id
+              }
+
+              output "terraform_sa_name" {
+                description = "Fully qualified name for privileged service account for Terraform."
+                value       = module.seed_bootstrap.terraform_sa_name
+              }
+
+              output "gcs_bucket_tfstate" {
+                description = "Bucket used for storing terraform state for foundations pipelines in seed project."
+                value       = module.seed_bootstrap.gcs_bucket_tfstate
+              }
+
+              variable "org_id" {
+                description = "The organization id for the associated services"
+                type        = string
+              }
+
+    seed-service-account:
+      type: unfurl.nodes.GoogleCloudObject
+      properties:
+        # lookup attribute from the seed node instance
+        account_id: "{{ '::seed::terraform_sa_name' | eval }}"
+      requirements:
+        - dependency: seed
+      interfaces:
+        Standard:
+          create: # "Downloads key to seed-service-account/local/credentials.json"
+              implementation: gcloud iam service-accounts keys create "{{ 'credentials.json' | abspath('local') }}" --iam-account "{{SELF.account_id}}" --user-output-enabled false
