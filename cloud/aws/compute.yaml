@@ -18,6 +18,13 @@ topology_template:
         owner: amazon
         name_regex: amzn2
 
+decorators:
+  unfurl.nodes.Compute:
+    properties:
+      machine_type:
+        eval:
+          python: helpers.py#choose_machine_type
+
 node_types:
   unfurl.nodes.BootImage:
     derived_from: unfurl.nodes.BootImageAbstract
