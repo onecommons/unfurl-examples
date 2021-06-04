@@ -16,7 +16,7 @@ def choose_machine_type(ctx):
 
     if types:
         log.info(
-            "Selected machine type: %s [CPU: %s, Memory: %s]",
+            "Selected machine type: %s [CPU: %s, Memory: %s MiB]",
             types[0]["name"],
             types[0]["cpu"],
             types[0]["mem"],
@@ -40,7 +40,7 @@ def attributes_from_host(ctx):
 
     num_cpus = host.properties["num_cpus"]
     mem_size = host.properties["mem_size"]
-    mem_size = ScalarUnit_Size(mem_size).get_num_from_scalar_unit("MB")
+    mem_size = ScalarUnit_Size(mem_size).get_num_from_scalar_unit("MiB")
     return num_cpus, mem_size
 
 

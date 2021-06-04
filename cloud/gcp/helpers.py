@@ -16,7 +16,7 @@ def choose_machine_type(ctx):
 
     if types:
         log.info(
-            "Selected machine type: %s [CPU: %s, Memory: %s]",
+            "Selected machine type: %s [CPU: %s, Memory: %s MB]",
             types[0]["name"],
             types[0]["cpu"],
             types[0]["mem"],
