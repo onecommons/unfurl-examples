@@ -2,7 +2,7 @@ import logging
 
 import boto3
 from botocore.exceptions import BotoCoreError
-from unfurl.vendor.toscaparser.elements.scalarunit import ScalarUnit_Size
+from toscaparser.elements.scalarunit import ScalarUnit_Size
 
 log = logging.getLogger(__file__)
 
@@ -10,10 +10,12 @@ log = logging.getLogger(__file__)
 def choose_machine_type(ctx):
     """Choose machine type based on memory and cpu"""
     num_cpus, mem_size = attributes_from_host(ctx)
-    types = machine_types(num_cpus, mem_size)
+    types = all_machine_types()
+    types = filter(lambda x: x["mem"] >= mem_size and x["cpu"] >= num_cpus, types)
+    types = sorted(types, key=lambda x: (x["cpu"], x["mem"]))
 
     if types:
-        return types[0]
+        return types[0]["name"]
     raise ValueError(
         "Can't find satisfactory machine type ({} cpus, {} mem).".format(
             num_cpus, mem_size
@@ -36,20 +38,24 @@ def attributes_from_host(ctx):
     return num_cpus, mem_size
 
 
-def machine_types(num_cpus, mem_size):
+def all_machine_types():
     client = boto3.client("ec2")
-    filters = [
-        {"Name": "vcpu-info.default-vcpus", "Values": [str(num_cpus)]},
-        {"Name": "memory-info.size-in-mib", "Values": [str(mem_size)]},
-    ]
+    kwargs = {}
     try:
-        response = client.describe_instance_types(Filters=filters)
+        while True:
+            results = client.describe_instance_types(**kwargs)
+            if "NextToken" not in results:
+                break
+            kwargs["NextToken"] = results["NextToken"]
+            yield from (
+                {
+                    "name": it["InstanceType"],
+                    "mem": it["MemoryInfo"]["SizeInMiB"],
+                    "cpu": it["VCpuInfo"]["DefaultVCpus"],
+                }
+                for it in results["InstanceTypes"]
+            )
+
     except BotoCoreError as e:
         log.error("AWS: %s", e)
-        raise ValueError(
-            "Can't find machine type ({} cpus, {} mem). Can't communicate with AWS.".format(
-                num_cpus, mem_size
-            )
-        )
-
-    return [it["InstanceType"] for it in response["InstanceTypes"]]
+        raise ValueError("Can't find machine types. Can't communicate with AWS.")
