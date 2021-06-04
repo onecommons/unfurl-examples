@@ -18,6 +18,13 @@ topology_template:
         project: cos-cloud
         family: cos-85-lts
 
+decorators:
+  unfurl.nodes.Compute:
+    properties:
+      machine_type:
+        eval:
+          python: helpers.py#choose_machine_type
+
 node_types:
   unfurl.nodes.BootImage:
     derived_from: unfurl.nodes.BootImageAbstract
