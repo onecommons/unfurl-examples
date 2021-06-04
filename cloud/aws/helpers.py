@@ -15,6 +15,12 @@ def choose_machine_type(ctx):
     types = sorted(types, key=lambda x: (x["cpu"], x["mem"]))
 
     if types:
+        log.info(
+            "Selected machine type: %s [CPU: %s, Memory: %s]",
+            types[0]["name"],
+            types[0]["cpu"],
+            types[0]["mem"],
+        )
         return types[0]["name"]
     raise ValueError(
         "Can't find satisfactory machine type ({} cpus, {} mem).".format(
