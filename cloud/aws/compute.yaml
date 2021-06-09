@@ -70,7 +70,7 @@ node_types:
                   }
             resultTemplate:
               attributes:
-                boot_image: "{{ outputs.boot_image.value }}"
+                boot_image: "{{ outputs.boot_image }}"
 
   unfurl.nodes.Compute:
     derived_from: unfurl.nodes.ComputeAbstract
