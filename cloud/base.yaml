@@ -89,7 +89,7 @@ node_types:
             inputs:
               resultTemplate:
                 attributes:
-                  user_data: "{{ outputs.cloud_config.value }}"
+                  user_data: "{{ outputs.cloud_config }}"
               tfvars:
                 files: "{{ SELF.files }}"
                 env: "{{ SELF.env }}"
