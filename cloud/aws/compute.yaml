@@ -40,9 +40,16 @@ node_types:
             main:
               eval:
                 template: |
-                  provider "aws" {
-                    version = "~> 3.2"
+                  terraform {
+                    required_providers {
+                      aws = {
+                        source  = "hashicorp/aws"
+                        version = "~> 3.2"
+                      }
+                    }
                   }
+
+                  provider "aws" {}
 
                   data "aws_ami" "service_ami" {
                     most_recent = true
@@ -79,9 +86,16 @@ node_types:
             ami: "{{ SELF.boot_image }}"
             user_data: "{{ SELF.user_data }}"
           main: |
-            provider "aws" {
-              version = "~> 3.2"
+            terraform {
+              required_providers {
+                aws = {
+                  source  = "hashicorp/aws"
+                  version = "~> 3.2"
+                }
+              }
             }
+
+            provider "aws" {}
 
             resource "aws_instance" "app" {
               ami             = var.ami
