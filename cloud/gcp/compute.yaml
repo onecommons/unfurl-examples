@@ -85,6 +85,7 @@ node_types:
               boot_disk {
                 initialize_params {
                   image = "{{ SELF.boot_image }}"
+                  size = {{ '.capabilities::disk_size' | eval | only_number }}
                 }
               }
 
