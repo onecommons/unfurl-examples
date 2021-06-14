@@ -124,6 +124,7 @@ node_types:
             }
 
             output "instance" {
+              sensitive = true
               value = google_compute_instance.app
             }
 
@@ -134,11 +135,11 @@ node_types:
             inputs:
               resultTemplate:
                 attributes:
-                  public_address: "{{ outputs.instance.value.network_interface[0].access_config[0].nat_ip }}"
-                  private_address: "{{ outputs.instance.value.network_interface[0].network_ip }}"
+                  public_address: "{{ outputs.instance.network_interface[0].access_config[0].nat_ip }}"
+                  private_address: "{{ outputs.instance.network_interface[0].network_ip }}"
                   # id format: projects/{{project}}/zones/{{zone}}/instances/{{name}}
-                  id:  "{{ outputs.instance.value.id }}"
-                  name: "{{ outputs.instance.value.id | basename }}"
+                  id:  "{{ outputs.instance.id }}"
+                  name: "{{ outputs.instance.id | basename }}"
       Install:
         operations:
           check:
