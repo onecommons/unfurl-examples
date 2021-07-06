@@ -1,0 +1,57 @@
+apiVersion: unfurl/v1alpha1
+kind: Ensemble
+
+spec:
+  service_template:
+    imports:
+    - file: base.yaml
+    node_types:
+      unfurl.nodes.Compute:
+        derived_from: unfurl.nodes.ComputeAbstract
+        properties:
+          machine_type:
+            type: string
+
+    topology_template:
+      node_templates:
+        gcp_metadata:
+          type: tosca.nodes.Root
+          interfaces:
+            Standard:
+              configure:
+                implementation:
+                  className: unfurl.configurators.TemplateConfigurator
+                inputs:
+                  done:
+                    result:
+                      all_machine_types:
+                        eval:
+                          python: gcp/helpers.py#list_all_machine_types
+                  resultTemplate:
+                    attributes:
+                      machine_types: '{{ all_machine_types }}'
+
+        compute:
+          type: unfurl.nodes.Compute
+          capabilities:
+            host:
+              properties:
+                num_cpus: 1
+                mem_size: 512MB
+                disk_size: 200GB
+          properties:
+            machine_type:
+              eval:
+                python: gcp/helpers.py#choose_machine_type
+                args:
+                  machine_types: '{{ NODES.gcp_metadata.machine_types }}'
+                  num_cpus: 1
+                  mem_size: 512MB
+          interfaces:
+            Standard:
+              create:
+                implementation:
+                  className: unfurl.configurators.shell.ShellConfigurator
+                inputs:
+                  command: echo hello {{ SELF.machine_type }}
+
