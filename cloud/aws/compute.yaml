@@ -17,13 +17,13 @@ topology_template:
       properties:
         owner: amazon
         name_regex: amzn2
+    aws_metadata:
+      type: tosca.nodes.Root
+      interfaces:
+        Standard:
+          create:
+            implementation: helpers.py#MetadataConfigurator
 
-decorators:
-  unfurl.nodes.Compute:
-    properties:
-      machine_type:
-        eval:
-          python: helpers.py#choose_machine_type
 
 node_types:
   unfurl.nodes.BootImage:
@@ -77,7 +77,11 @@ node_types:
     properties:
       machine_type:
         type: string
-        default: t2.micro
+        default:
+          eval:
+            python: '{{ "helpers.py#choose_machine_type" | abspath("cloud") }}'
+            args:
+              machine_types: '{{ NODES.aws_metadata.machine_types }}'
     interfaces:
       defaults:
         implementation: Terraform
