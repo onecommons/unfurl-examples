@@ -60,8 +60,8 @@ class MetadataConfigurator(Configurator):
     @staticmethod
     def all_machine_types():
         request = ListMachineTypesRequest()
-        project = os.getenv("GOOGLE_PROJECT")
-        zone = os.getenv("GOOGLE_ZONE")
+        project = os.getenv("CLOUDSDK_CORE_PROJECT")
+        zone = os.getenv("CLOUDSDK_COMPUTE_ZONE")
         if not project or not zone:
             raise ValueError(
                 "Can't choose machine type - GOOGLE_ZONE or GOOGLE_PROJECT not defined"
@@ -72,7 +72,7 @@ class MetadataConfigurator(Configurator):
         try:
             client = MachineTypesClient()
             response = client.list(request)
-        except GoogleAPIError as e:
+        except Exception as e:
             log.error("GCP: %s", e)
             raise ValueError("Can't find machine types. Can't communicate with GCP.")
 
