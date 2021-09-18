@@ -17,6 +17,12 @@ topology_template:
       properties:
         project: cos-cloud
         family: cos-85-lts
+    gcp_metadata:
+      type: tosca.nodes.Root
+      interfaces:
+        Standard:
+          create:
+            implementation: helpers.py#MetadataConfigurator
 
 node_types:
   unfurl.nodes.BootImage:
@@ -55,8 +61,11 @@ node_types:
     properties:
       machine_type:
         type: string
-        default: e2-small
-
+        default:
+          eval:
+            python: '{{ "helpers.py#choose_machine_type" | abspath("cloud") }}'
+            args:
+              machine_types: '{{ NODES.gcp_metadata.machine_types }}'
     interfaces:
       defaults:
         implementation: Terraform
