@@ -94,6 +94,7 @@ node_types:
               boot_disk {
                 initialize_params {
                   image = "{{ SELF.boot_image }}"
+                  size = {{ '.capabilities::disk_size' | eval | human_to_bytes | human_readable(unit="G") | regex_replace('[^\d.]') }}
                 }
               }
 

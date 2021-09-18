@@ -120,6 +120,10 @@ node_types:
               {% if SELF.user_data %}
               user_data = var.user_data
               {% endif %}
+
+              root_block_device {
+                volume_size = {{ '.capabilities::disk_size' | eval | human_to_bytes | human_readable(unit="G") | regex_replace('[^\d.]') }}
+              }
             }
 
             /* Firewall ----------------------------------------------------------------- */
