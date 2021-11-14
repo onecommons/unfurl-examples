@@ -64,7 +64,7 @@ class MetadataConfigurator(Configurator):
         zone = os.getenv("CLOUDSDK_COMPUTE_ZONE")
         if not project or not zone:
             raise ValueError(
-                "Can't choose machine type - GOOGLE_ZONE or GOOGLE_PROJECT not defined"
+                "Can't choose machine type - CLOUDSDK_COMPUTE_ZONE or CLOUDSDK_CORE_PROJECT not defined"
             )
         request.project = project
         request.zone = zone

@@ -19,6 +19,8 @@ topology_template:
         family: cos-85-lts
     gcp_metadata:
       type: tosca.nodes.Root
+      directives:
+        - default
       interfaces:
         Standard:
           create:
@@ -63,7 +65,7 @@ node_types:
         type: string
         default:
           eval:
-            python: '{{ "helpers.py#choose_machine_type" | abspath("cloud") }}'
+            python: "helpers.py#choose_machine_type"
             args:
               machine_types: '{{ NODES.gcp_metadata.machine_types }}'
     interfaces:

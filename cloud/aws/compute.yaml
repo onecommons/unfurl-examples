@@ -17,15 +17,23 @@ topology_template:
       properties:
         owner: amazon
         name_regex: amzn2
-    aws_metadata:
-      type: tosca.nodes.Root
-      interfaces:
-        Standard:
-          create:
-            implementation: helpers.py#MetadataConfigurator
 
+    aws_metadata:
+      type: unfurl.nodes.AWSMetadata
+      directives:
+        - default
 
 node_types:
+  unfurl.nodes.AWSMetadata:
+    derived_from: tosca.nodes.Root
+    attributes:
+      machine_types:
+        type: map
+    interfaces:
+      Standard:
+        configure:
+          implementation: helpers.py#MetadataConfigurator
+
   unfurl.nodes.BootImage:
     derived_from: unfurl.nodes.BootImageAbstract
     properties:
@@ -56,7 +64,21 @@ node_types:
                     }
                   }
 
-                  provider "aws" {}
+                  provider "aws" {
+                    {% set endpoints = "$connections::endpoints" | eval %}
+                    {%if endpoints %}
+                      skip_credentials_validation = true
+                      skip_metadata_api_check     = true
+                      skip_requesting_account_id  = true
+                      s3_force_path_style         = true
+
+                      endpoints  {
+                        {% for key,value in endpoints.items() %}
+                        {{ key }} = "{{ value }}"
+                        {% endfor %}
+                      }
+                    {%endif%}
+                  }
 
                   data "aws_ami" "service_ami" {
                     most_recent = true
@@ -106,7 +128,21 @@ node_types:
               }
             }
 
-            provider "aws" {}
+            provider "aws" {
+                {% set endpoints = "$connections::endpoints" | eval %}
+                {%if endpoints %}
+                  skip_credentials_validation = true
+                  skip_metadata_api_check     = true
+                  skip_requesting_account_id  = true
+                  s3_force_path_style         = true
+
+                endpoints  {
+                  {% for key,value in endpoints.items() %}
+                  {{ key }} = "{{ value }}"
+                  {% endfor %}
+                }
+                {%endif%} 
+            }
 
             resource "aws_instance" "app" {
               ami             = var.ami
