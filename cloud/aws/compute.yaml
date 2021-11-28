@@ -65,7 +65,7 @@ node_types:
                   }
 
                   provider "aws" {
-                    {% set endpoints = "$connections::endpoints" | eval %}
+                    {% set endpoints = "$connections::AWSAccount::endpoints" | eval %}
                     {%if endpoints %}
                       skip_credentials_validation = true
                       skip_metadata_api_check     = true
@@ -129,7 +129,7 @@ node_types:
             }
 
             provider "aws" {
-                {% set endpoints = "$connections::endpoints" | eval %}
+                {% set endpoints = "$connections::AWSAccount::endpoints" | eval %}
                 {%if endpoints %}
                   skip_credentials_validation = true
                   skip_metadata_api_check     = true
@@ -141,7 +141,7 @@ node_types:
                   {{ key }} = "{{ value }}"
                   {% endfor %}
                 }
-                {%endif%} 
+                {%endif%}
             }
 
             resource "aws_instance" "app" {
