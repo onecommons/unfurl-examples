@@ -10,6 +10,17 @@ imports:
 
 topology_template:
   node_templates:
+    gcp_artifacts:
+      type: unfurl.nodes.LocalRepository
+      directives:
+        - default # we need this so that this node template is imported
+      artifacts:
+        google-cloud-compute:
+          type: artifact.PythonPackage
+          file: google-cloud-compute
+          # properties:
+          #   version: XXX
+
     dockerhost-bootimage:
       type: unfurl.nodes.BootImage
       directives:
@@ -24,7 +35,10 @@ topology_template:
       interfaces:
         Standard:
           create:
-            implementation: helpers.py#MetadataConfigurator
+            implementation:
+              primary: helpers.py#MetadataConfigurator
+              dependencies:
+                - google-cloud-compute
 
 node_types:
   unfurl.nodes.BootImage:
