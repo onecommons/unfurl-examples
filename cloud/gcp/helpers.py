@@ -54,11 +54,14 @@ def attributes_from_host(ctx):
 class MetadataConfigurator(Configurator):
     def run(self, task):
         task.logger.info("Fetching machine types")
-        task.target.attributes["machine_types"] = list(self.all_machine_types())
+        task.target.attributes["machine_types"] = list(self.all_machine_types(task))
         yield task.done(True)
 
+    def can_dry_run(self, task):
+        return True
+
     @staticmethod
-    def all_machine_types():
+    def all_machine_typesg(task):
         request = ListMachineTypesRequest()
         project = os.getenv("CLOUDSDK_CORE_PROJECT")
         zone = os.getenv("CLOUDSDK_COMPUTE_ZONE")
@@ -73,7 +76,7 @@ class MetadataConfigurator(Configurator):
             client = MachineTypesClient()
             response = client.list(request)
         except Exception as e:
-            log.error("GCP: %s", e)
+            task.logger.error("GCP: %s", e)
             raise ValueError("Can't find machine types. Can't communicate with GCP.")
 
         yield from (
