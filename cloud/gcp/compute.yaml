@@ -7,6 +7,8 @@ metadata:
   template_version: 1.0.0
 imports:
   - file: ../base.yaml
+  - repository: unfurl
+    file: tosca_plugins/artifacts.yaml
 
 topology_template:
   node_templates:
