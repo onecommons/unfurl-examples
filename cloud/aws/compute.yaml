@@ -199,10 +199,8 @@ node_types:
               resultTemplate:
                 attributes:
                   id: '{{ resources[0].instances[0].attributes.id }}'
-                  private_address: '{{ resources[0].instances[0].attributes.private_ip
-                    }}'
-                  public_address: '{{ resources[0].instances[0].attributes.public_ip
-                    }}'
+                  private_address: '{{ resources[0].instances[0].attributes.private_ip }}'
+                  public_address: '{{ resources[0].instances[0].attributes.public_ip }}'
       Install:
         operations:
           check:
