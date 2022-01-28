@@ -167,11 +167,37 @@ node_types:
             resource "aws_security_group" "app" {
               name = "allow_app"
 
+              {%if SELF.portspec.source %}
               ingress {
                 description = "app"
                 from_port   = {{ SELF.portspec.source }}
                 to_port     = {{ SELF.portspec.target or SELF.portspec.source }}
                 protocol    =  "{{ SELF.portspec.protocol or 'tcp' }}"
+                cidr_blocks = ["0.0.0.0/0"]
+              }
+              {% endif %}
+
+              ingress {
+                description = "ssh"
+                from_port   = 22
+                to_port     = 22
+                protocol    = "tcp"
+                cidr_blocks = ["0.0.0.0/0"]
+              }
+
+              ingress {
+                description = "https"
+                from_port   = 443
+                to_port     = 443
+                protocol    = "tcp"
+                cidr_blocks = ["0.0.0.0/0"]
+              }
+
+              ingress {
+                description = "http"
+                from_port   = 80
+                to_port     = 80
+                protocol    = "tcp"
                 cidr_blocks = ["0.0.0.0/0"]
               }
 
@@ -180,6 +206,7 @@ node_types:
                 to_port     = 0
                 protocol    = "-1"
                 cidr_blocks = ["0.0.0.0/0"]
+                ipv6_cidr_blocks = ["::/0"]
               }
             }
 

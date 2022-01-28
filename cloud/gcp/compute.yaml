@@ -101,7 +101,7 @@ node_types:
             resource "google_compute_instance" "app" {
               name         = "app"
               machine_type = "{{ SELF.machine_type }}"
-              tags         = [ "app", "ssh" ]
+              tags         = [ "app", "ssh", "http-server", "https-server" ]
 
               metadata = {
                   {% if SELF.user_data %}
