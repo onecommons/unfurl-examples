@@ -38,7 +38,7 @@ topology_template:
         Standard:
           create:
             implementation:
-              primary: helpers.py#MetadataConfigurator
+              className: helpers.py#MetadataConfigurator
               dependencies:
                 - google-cloud-compute
 
@@ -81,7 +81,7 @@ node_types:
         type: string
         default:
           eval:
-            python: "helpers.py#choose_machine_type"
+            python: ../helpers.py#choose_machine_type
             args:
               machine_types: '{{ NODES.gcp_metadata.machine_types }}'
     interfaces:

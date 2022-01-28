@@ -108,7 +108,7 @@ node_types:
         type: string
         default:
           eval:
-            python: '{{ "helpers.py#choose_machine_type" | abspath("cloud") }}'
+            python: ../helpers.py#choose_machine_type
             args:
               machine_types: '{{ NODES.aws_metadata.machine_types }}'
     interfaces:
