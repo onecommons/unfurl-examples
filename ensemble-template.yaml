@@ -1,0 +1,80 @@
+# This template is intended to be included in your ensemble.yaml manifest file
+# (by default, found at ensemble/ensemble.yaml)
+# Edit it to include anything reusable that your ensemble needs, such as its service_template.
+apiVersion: unfurl/v1alpha1
+spec:
+  # set the inputs that unique to this particular instance
+  # inputs:
+  #   # the domain name to use for this deployment
+  #   domain: demo.mydomain.com
+  #   # this email is used when we generate certs with lets encrypt
+  #   email:  admin@mydomain.com
+  #   # the container image
+  #   container_image:  nginxdemos/hello
+  #   # port to map to 80
+  #   port:  80
+
+  service_template:
+    imports:
+      - file: cloud/gcp/compute.yaml
+        when: .primary_provider[type=unfurl.relationships.ConnectsTo.GoogleCloudProject]
+      - file: cloud/aws/compute.yaml
+        when: .primary_provider[type=unfurl.relationships.ConnectsTo.AWSAccount]
+      - repository: unfurl
+        file: configurators/dns-template.yaml
+
+    topology_template:
+      inputs:
+        domain:
+          type: string
+        email:
+          type: string
+        container_image:
+          type: string
+        port:
+          type: integer
+
+      node_templates:
+        compute:
+          type: unfurl.nodes.Compute
+          capabilities:
+            host:
+             properties:
+               num_cpus: 2
+               disk_size: 200GB
+               mem_size: 1GB # XXX set as minimum value in type definition
+          requirements:
+            - configuredBy: container_service
+
+        container_service:
+          type: unfurl.nodes.DockerComputeHost
+          properties:
+            domain: {get_input: domain}
+            email:  {get_input: email}
+            image:  {get_input: container_image}
+            portspec:
+              source: {get_input: port}
+              target: 80
+
+        dns:
+          type: unfurl.nodes.DNSZone
+          properties:
+            # strip out first subdomain
+            name: "{{ '::root::inputs::domain' | eval | regex_replace('^.+?\\.', '')  }}."
+            provider:
+              class: octodns.provider.route53.Route53Provider
+            records:
+              # first subdomain
+              "{{ '::root::inputs::domain' | eval | split('.') | first }}":
+                ttl: 60
+                type: A
+                values:
+                  - eval: ::compute::public_address
+              "www.{{ '::root::inputs::domain' | eval | split('.') | first }}":
+                type: A
+                values:
+                  - eval: ::compute::public_address
+
+      outputs:
+        url:
+          value: "https://{{ '::root::inputs::domain' | eval }}"
