@@ -15,8 +15,8 @@ topology_template:
       directives:
         - default
       properties:
-        owner: amazon
-        name_regex: amzn2
+        owner: "099720109477" # Canonical
+        name_regex: focal # dont use amzn2 cloud-init fails unrecognized linux
 
     aws_metadata:
       type: unfurl.nodes.AWSMetadata
@@ -104,6 +104,9 @@ node_types:
   unfurl.nodes.Compute:
     derived_from: unfurl.nodes.ComputeAbstract
     properties:
+      key_name:
+        type: string
+        required: false
       machine_type:
         type: string
         default:
@@ -153,6 +156,10 @@ node_types:
                 Name = "app"
               }
 
+              {% if SELF.key_name %}
+              key_name = "{{ SELF.key_name }}"
+              {% endif %}
+
               {% if SELF.user_data %}
               user_data = var.user_data
               {% endif %}
@@ -166,16 +173,6 @@ node_types:
 
             resource "aws_security_group" "app" {
               name = "allow_app"
-
-              {%if SELF.portspec.source %}
-              ingress {
-                description = "app"
-                from_port   = {{ SELF.portspec.source }}
-                to_port     = {{ SELF.portspec.target or SELF.portspec.source }}
-                protocol    =  "{{ SELF.portspec.protocol or 'tcp' }}"
-                cidr_blocks = ["0.0.0.0/0"]
-              }
-              {% endif %}
 
               ingress {
                 description = "ssh"
@@ -226,8 +223,11 @@ node_types:
               resultTemplate:
                 attributes:
                   id: '{{ resources[0].instances[0].attributes.id }}'
+                  arn: '{{ resources[0].instances[0].attributes.arn }}'
                   private_address: '{{ resources[0].instances[0].attributes.private_ip }}'
+                  private_dns: '{{ resources[0].instances[0].attributes.private_dns }}'
                   public_address: '{{ resources[0].instances[0].attributes.public_ip }}'
+                  public_dns: '{{ resources[0].instances[0].attributes.public_dns }}'
       Install:
         operations:
           check:

@@ -6,6 +6,10 @@ metadata:
   template_author: onecommons.org
   template_version: 1.0.0
 
+repositories:
+  terraform-cloudinit-container-server:
+    url: https://github.com/christippett/terraform-cloudinit-container-server.git
+
 relationship_types:
   unfurl.relationships.ConfiguredBy:
     derived_from: tosca.relationships.Root
@@ -54,10 +58,12 @@ node_types:
     properties:
       portspec:
         type: tosca.datatypes.network.PortSpec
+        required: false
       files:
         type: list
         entry_schema:
           type: map
+        default: []
       env:
         type: map
         entry_schema:
@@ -86,6 +92,8 @@ node_types:
         operations:
           configure:
             implementation: Terraform
+            outputs:
+              cloud_config:
             inputs:
               resultTemplate:
                 attributes:
@@ -93,93 +101,15 @@ node_types:
               tfvars:
                 files: "{{ SELF.files }}"
                 env: "{{ SELF.env }}"
-              main: |
-                locals {
-                  environment = merge({
-                      COMPOSE_DOCKER_IMAGE       = var.docker_compose_image
-                      COMPOSE_DOCKER_TAG         = var.docker_compose_tag
-                    }, var.env)
-
-                  file_regex   = "(?P<filename>docker-compose(?:\\.(?P<name>.*?))?\\.ya?ml)"
-                  files = concat(
-                    [
-                      {
-                        filename = ".env"
-                        content  = base64encode(join("\n", [for k, v in local.environment : "${k}=${v}" if v != null]))
-                      }
-                    ],
-                    var.files
-                  )
-
-                  # From the list above, identify all docker-compose*.yaml files.
-                  # This list will be used to generate separate systemd unit files for each service.
-                  docker_compose_files = [
-                    for f in local.files : merge(regex(local.file_regex, f.filename), f)
-                    if can(regex(local.file_regex, f.filename))
-                  ]
-                }
-
-                // Generate cloud-init config
-
-                data "cloudinit_config" "config" {
-                  gzip          = false
-                  base64_encode = false
-
-                  part {
-                    filename     = "cloud-init.yaml"
-                    merge_type   = "list(append)+dict(no_replace,recurse_list)+str()"
-                    content_type = "text/cloud-config"
-                    content = templatefile("{{ 'cloud-config.yaml' | abspath('src') }}", {
-                      files                = local.files
-                      docker_compose_files = local.docker_compose_files
-                    })
-                  }
-
-                  # Add any additional cloud-init configuration or scripts provided by the user
-                  dynamic "part" {
-                    for_each = var.cloudinit_part
-                    content {
-                      merge_type   = "list(append)+dict(no_replace,recurse_list)+str()"
-                      content_type = part.value.content_type
-                      content      = part.value.content
-                    }
-                  }
-                }
-
-                output "cloud_config" {
-                  description = "Content of the cloud-init config to be deployed to a server."
-                  value       = data.cloudinit_config.config.rendered
-                }
-
-                variable "env" {
-                  description = "List of environment variables (KEY=VAL) to be made available within the application container and also Docker Compose (useful for overriding configuration options)."
-                  type        = map(string)
-                  default     = {}
-                }
-
-                variable "files" {
-                  description = "User files to be copied to the application's working directory (`/var/app`). The file's content must be provided to Terraform as a base64 encoded string."
-                  type        = list(object({ filename : string, content : string }))
-                  default     = []
-                }
-
-                variable "cloudinit_part" {
-                  description = "Additional cloud-init configuration used to setup and/or customise the instance beyond the defaults provided by this module."
-                  type        = list(object({ content_type : string, content : string }))
-                  default     = []
-                }
-
-                variable "docker_compose_image" {
-                  description = "Docker image used to run Docker Compose commands. (default: docker/compose)"
-                  type        = string
-                  default     = "docker/compose"
-                }
-
-                variable "docker_compose_tag" {
-                  description = "Tagged version of Docker Compose to use. (default: latest)"
-                  type        = string
-                  default     = "latest"
-                }
+                email: "{{ SELF.email }}"
+                domain: "{{ SELF.domain }}"
+                # letsencrypt_staging: true
+                container:
+                  image:
+                    eval: .::image
+              main:
+                eval:
+                  get_dir: terraform-cloudinit-container-server
 
 # XXX use this for ssh endpoints and storage
 # annotations:

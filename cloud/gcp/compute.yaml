@@ -125,6 +125,7 @@ node_types:
               }
             }
 
+            {%if SELF.portspec and SELF.portspec.source %}
             resource "google_compute_firewall" "app" {
               name    = "app-firewall"
               network = var.network
@@ -140,6 +141,7 @@ node_types:
 
               target_tags = ["app"]
             }
+            {% endif %}
 
             variable "user_data" {
               type        = string
