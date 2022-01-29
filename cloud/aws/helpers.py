@@ -12,6 +12,7 @@ class MetadataConfigurator(Configurator):
 
     @staticmethod
     def all_machine_types(task):
+        # XXX add parameter to filter by architecture
         # delay imports until now so the python package can be installed first
         import boto3
         from botocore.exceptions import BotoCoreError
@@ -20,13 +21,18 @@ class MetadataConfigurator(Configurator):
         endpoint_url = task.query("$connections::AWSAccount::endpoints::ec2")
         client = boto3.client("ec2", endpoint_url=endpoint_url)
         try:
+            filters = [
+                dict(Name="processor-info.supported-architecture", Values=["x86_64"]),
+                dict(Name="supported-virtualization-type", Values=["hvm"]),
+            ]
             paginator = client.get_paginator("describe_instance_types")
-            for page in paginator.paginate():
+            for page in paginator.paginate(Filters=filters):
                 yield from (
                     {
                         "name": it["InstanceType"],
                         "mem": it["MemoryInfo"]["SizeInMiB"],
                         "cpu": it["VCpuInfo"]["DefaultVCpus"],
+                        "arch": it["ProcessorInfo"]["SupportedArchitectures"],
                     }
                     for it in page["InstanceTypes"]
                 )
