@@ -3,17 +3,6 @@
 # Edit it to include anything reusable that your ensemble needs, such as its service_template.
 apiVersion: unfurl/v1alpha1
 spec:
-  # set the inputs that unique to this particular instance
-  # inputs:
-  #   # the domain name to use for this deployment
-  #   domain: demo.mydomain.com
-  #   # this email is used when we generate certs with lets encrypt
-  #   email:  admin@mydomain.com
-  #   # the container image
-  #   container_image:  nginxdemos/hello
-  #   # port to map to 80
-  #   port:  80
-
   service_template:
     imports:
       - file: cloud/gcp/compute.yaml
