@@ -222,12 +222,12 @@ node_types:
             inputs:
               resultTemplate:
                 attributes:
-                  id: '{{ resources[0].instances[0].attributes.id }}'
-                  arn: '{{ resources[0].instances[0].attributes.arn }}'
-                  private_address: '{{ resources[0].instances[0].attributes.private_ip }}'
-                  private_dns: '{{ resources[0].instances[0].attributes.private_dns }}'
-                  public_address: '{{ resources[0].instances[0].attributes.public_ip }}'
-                  public_dns: '{{ resources[0].instances[0].attributes.public_dns }}'
+                  id: '{{ resources and resources[0].instances[0].attributes.id }}'
+                  arn: '{{ resources and resources[0].instances[0].attributes.arn }}'
+                  private_address: '{{ resources and resources[0].instances[0].attributes.private_ip }}'
+                  private_dns: '{{ resources and resources[0].instances[0].attributes.private_dns }}'
+                  public_address: '{{ resources and resources[0].instances[0].attributes.public_ip }}'
+                  public_dns: '{{ resources and resources[0].instances[0].attributes.public_dns }}'
       Install:
         operations:
           check:
