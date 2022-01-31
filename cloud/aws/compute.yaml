@@ -156,7 +156,7 @@ node_types:
                 Name = "app"
               }
 
-              {% if SELF.key_name %}
+              {% if SELF.key_name | default("") %}
               key_name = "{{ SELF.key_name }}"
               {% endif %}
 
