@@ -36,7 +36,7 @@ node_types:
       machine_type:
         type: string
         default:
-          eval: ..::.requirements::[.name=configuredBy]::.target::machine_type
+          eval: .::.requirements::[.name=configuredBy]::.target::machine_type
       user_data:
         type: string
         default:
@@ -44,8 +44,7 @@ node_types:
       portspec:
         type: tosca.datatypes.network.PortSpec
         default:
-          eval:
-            .::.requirements::[.name=configuredBy]::.target::portspec
+          eval: .::.requirements::[.name=configuredBy]::.target::portspec
       # name, zone, machine_type, tags, network
     requirements:
       - configuredBy:
@@ -110,7 +109,6 @@ node_types:
               main:
                 eval:
                   get_dir: terraform-cloudinit-container-server
-
 # XXX use this for ssh endpoints and storage
 # annotations:
 #     unfurl:ComputeAbstract[configuredBy]:

@@ -113,7 +113,7 @@ node_types:
           eval:
             python: ../helpers.py#choose_machine_type
             args:
-              machine_types: '{{ NODES.aws_metadata.machine_types }}'
+              machine_types: "{{ NODES.aws_metadata.machine_types }}"
     interfaces:
       defaults:
         implementation: Terraform
@@ -150,7 +150,7 @@ node_types:
             resource "aws_instance" "app" {
               ami             = var.ami
               instance_type   = "{{ SELF.machine_type }}"
-              security_groups = [aws_security_group.app.name]
+              security_groups = ["allow_app"]
 
               tags = {
                 Name = "app"
@@ -169,7 +169,7 @@ node_types:
               }
             }
 
-            /* Firewall ----------------------------------------------------------------- */
+            /* Firewall -----------------------------------------------------------------
 
             resource "aws_security_group" "app" {
               name = "allow_app"
@@ -207,6 +207,8 @@ node_types:
               }
             }
 
+            */
+
             variable "user_data" {
               type        = string
               default     = ""
@@ -222,12 +224,12 @@ node_types:
             inputs:
               resultTemplate:
                 attributes:
-                  id: '{{ resources and resources[0].instances[0].attributes.id }}'
-                  arn: '{{ resources and resources[0].instances[0].attributes.arn }}'
-                  private_address: '{{ resources and resources[0].instances[0].attributes.private_ip }}'
-                  private_dns: '{{ resources and resources[0].instances[0].attributes.private_dns }}'
-                  public_address: '{{ resources and resources[0].instances[0].attributes.public_ip }}'
-                  public_dns: '{{ resources and resources[0].instances[0].attributes.public_dns }}'
+                  id: "{{ resources and resources[0].instances[0].attributes.id }}"
+                  arn: "{{ resources and resources[0].instances[0].attributes.arn }}"
+                  private_address: "{{ resources and resources[0].instances[0].attributes.private_ip }}"
+                  private_dns: "{{ resources and resources[0].instances[0].attributes.private_dns }}"
+                  public_address: "{{ resources and resources[0].instances[0].attributes.public_ip }}"
+                  public_dns: "{{ resources and resources[0].instances[0].attributes.public_dns }}"
       Install:
         operations:
           check:

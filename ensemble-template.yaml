@@ -23,26 +23,29 @@ spec:
         port:
           type: integer
 
+      substitution_mappings:
+        node: container_service
+
       node_templates:
         compute:
           type: unfurl.nodes.Compute
           capabilities:
             host:
-             properties:
-               num_cpus: 2
-               disk_size: 200GB
-               mem_size: 1GB # XXX set as minimum value in type definition
+              properties:
+                num_cpus: 2
+                disk_size: 200GB
+                mem_size: 1GB # XXX set as minimum value in type definition
           requirements:
             - configuredBy: container_service
 
         container_service:
           type: unfurl.nodes.DockerComputeHost
           properties:
-            domain: {get_input: domain}
-            email:  {get_input: email}
-            image:  {get_input: container_image}
+            domain: { get_input: domain }
+            email: { get_input: email }
+            image: { get_input: container_image }
             portspec:
-              source: {get_input: port}
+              source: { get_input: port }
               target: 80
 
         dns:

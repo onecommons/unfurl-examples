@@ -15,9 +15,11 @@ kind: Project
 # of an ensemble created with a matching "--use-environment" argument
 # See https://docs.unfurl.run/environments.html
 
-# environments:
-#  defaults:
-    # There can multiple environment with different names but they will merge the defaults specified here.
-    # variables:
-    # connections:
-    # (etc.)
+environments:
+  defaults:
+    connections:
+      # declare the primary_provider as a connection to an Amazon Web Services account:
+      primary_provider:
+        type: unfurl.relationships.ConnectsTo.AWSAccount
+        properties:
+          AWS_DEFAULT_REGION: us-west-2
