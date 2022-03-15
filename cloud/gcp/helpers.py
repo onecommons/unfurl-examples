@@ -12,7 +12,7 @@ class MetadataConfigurator(Configurator):
         return True
 
     @staticmethod
-    def all_machine_typesg(task):
+    def all_machine_types(task):
         # delay imports until now so the python package can be installed first
         from google.cloud.compute_v1 import ListMachineTypesRequest, MachineTypesClient
 
